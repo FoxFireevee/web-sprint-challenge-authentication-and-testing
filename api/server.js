@@ -1,8 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const helmet = require('helmet');
+require('dotenv').config();
 
-const restrict = require('./middleware/restricted.js');
+const { validateToken } = require('./middleware/restricted.js');
 
 const authRouter = require('./auth/auth-router.js');
 const jokesRouter = require('./jokes/jokes-router.js');
@@ -12,8 +14,20 @@ const server = express();
 server.use(helmet());
 server.use(cors());
 server.use(express.json());
+server.use(session({
+    name: 'Secret Token',
+    secret: 'Secret Agent',
+    cookie: {
+        maxAge: 1000 * 60 * 60,
+        secure: false,
+        httpOnly: false,
+    },
+    rolling: true,
+    resave: false,
+    saveUninitialized: false,
+}))
 
 server.use('/api/auth', authRouter);
-server.use('/api/jokes', restrict, jokesRouter); // only logged-in users should have access!
+server.use('/api/jokes', validateToken, jokesRouter); // only logged-in users should have access!
 
 module.exports = server;
